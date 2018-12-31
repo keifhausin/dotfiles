@@ -2,6 +2,7 @@ ant
 autoconf
 automake
 awscli
+bash
 bsdmake
 ccache
 cloc
@@ -13,12 +14,14 @@ go
 gradle-completion
 groovy
 jenv
-kotlin
+jsonnet
 makedepend
 maven
-mercurial
 mitmproxy
+mongodb
+neovim
 node
+nvm
 pkg-config
 postgresql
 pup
@@ -26,4 +29,7 @@ python
 redis
 ruby
 rust
+scala
+shellcheck
+terraform
 yarn

@@ -1,3 +1,3 @@
-# Danny's dotfiles #
+# Andrew's dotfiles #
 
 My dotfiles repository for https://github.com/DanielThomas/oh-your-dotfiles.
