@@ -2,11 +2,14 @@ asciinema
 bash
 bat
 coreutils
+cowsay
 curl
 dos2unix
 findutils
+fortune
 fpp
 gnu-sed
+gource
 grc
 htop
 httpie
