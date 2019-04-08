@@ -1,3 +1,8 @@
+if test ! "$(uname)" = "Darwin"
+  then
+  exit 0
+fi
+
 ## Sensible defaults for Mac OS
 
 # Disable press-and-hold for keys in favor of key repeat
