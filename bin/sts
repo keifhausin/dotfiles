@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+
+## requires jq, gdate 
+# needs team as env var, or ask
+
+TEAM="jetstream"
+# TEAM="grabthar"
+
+# GRABTHAR_CLIENT_ID_URI="https://grabthar.aws.cimpress.io/clientid"
+# GRABTHAR_DEFAULT_ROLE="aws-grabthar-developer"
+# SPOON_CLIENT_ID_URI="https://spoon.aws.cimpress.io/clientid"
+# SPOON_DEFAULT_ROLE="aws-spoon-developer"
+# JETSTREAM_CLIENT_ID_URI="https://jetstream.aws.cimpress.io/clientid"
+# JETSTREAM_DEFAULT_ROLE="aws-jetstream-developer"
+# TM_FMT="%Y %m %dT%H:%M:%S.000Z"
+# CE_TM_FMT="%Y %m %d %H:%M:%S +0000 UTC"
+
+## This function determines which http get tool the system has installed and returns an error if there isnt one
+getConfiguredClient() {
+  if command -v curl &>/dev/null; then
+    configuredClient="curl"
+  elif command -v wget &>/dev/null; then
+    configuredClient="wget"
+  elif command -v http &>/dev/null; then
+    configuredClient="httpie"
+  elif command -v fetch &>/dev/null; then
+    configuredClient="fetch"
+  else
+    echo "Error: This tool reqires either curl, wget, httpie or fetch to be installed\." >&2
+    return 1
+  fi
+}
+
+## Allows to call the users configured client without if statements everywhere
+httpGet() {
+  case "$configuredClient" in
+    curl)  curl -A curl -s "$@" ;;
+    wget)  wget -qO- "$@" ;;
+    httpie) http -b GET "$@" ;;
+  esac
+}
+
+## Allows to call the users configured client without if statements everywhere
+httpPost() {
+  case "$configuredClient" in
+    curl)  curl -A curl -X POST -s "$@" ;;
+    wget)  wget -qO- "$@" ;; # fix
+    httpie) http -b GET "$@" ;; # fix
+  esac
+}
+
+fetch_client_id() {
+    echo $(httpGet "https://$1.aws.cimpress.io/clientid") #NOTE: looks to be stable might want to write to a file to cache it 
+}
+
+fetch_id_token() {
+    typeset username="adobson@vistaprint.com" # TODO: get username from arg or ask
+    typeset password
+
+    stty -echo
+    read -p "Please enter your password: " password;
+    stty echo
+
+    local JSON_STRING=$( jq -n \
+                    --arg cn "$client_id" \
+                    --arg un "$username" \
+                    --arg pw "$password" \
+                    --arg connection "CimpressADFS" \
+                    --arg grant "password" \
+                    --arg scope "openid" \
+                    '{"client_id": $cn, "username": $un, "password": $pw, "connection": $connection, "grant_type": $grant, "scope": $scope}' )
+    unset password
+    echo $(httpPost "https://cimpress.auth0.com/oauth/ro" -d "$JSON_STRING" -H "Content-Type: application/json" | jq -r '.id_token')
+}
+
+get_fresh_session_token() {
+    local JSON_STRING=$( jq -n \
+                    --arg cn "$client_id" \
+                    --arg id "$id_token" \
+                    --arg grant "urn:ietf:params:oauth:grant-type:jwt-bearer" \
+                    --arg scope "openid" \
+                    --arg api "aws" \
+                    '{"client_id": $cn, "id_token": $id, "grant_type": $grant, scope: $scope, "api_type": $api}' )
+
+    echo $(httpPost "https://cimpress.auth0.com/delegation" -d "$JSON_STRING" -H "Content-Type: application/json" )
+}
+
+get_session_for_profile() {
+    # $1 is the profile
+    if [[ $FORCE ]]; 
+    if  cached_token $1 ; then
+        # print out remaining duration
+        printf "token is still valid the time remaining is <BLARG>\n"
+    elif [[ '1' != '1' ]]; then
+        # TODO: possibly check if stored id token is valid and use that ^
+        # and if its about to expire auto renew it ( assuming we save the ID token )
+        printf "should not hit this yet\n"
+    else
+        printf "Your AWS session token has expired, requesting a new one.\n"
+        client_id=$(fetch_client_id $1)
+        id_token=$(fetch_id_token)
+        local creds=$(get_fresh_session_token)
+        configure "$creds"
+
+    fi
+    # get_fresh_session_token
+    printf "todo\n"
+}
+
+refresh_for_profile() {
+    # get_session_for_profile
+    printf "todo\n"
+}
+
+configure() {
+    # TODO: parse out the 
+    # account_number and role so ctr doesnt complain if we use both 
+
+    local key_id=$(jq -n $1 | jq -r '.Credentials.AccessKeyId')
+    local key_val=$(jq -n $1 | jq -r '.Credentials.SecretAccessKey') 
+    local session_token=$(jq -n $1 | jq -r '.Credentials.SessionToken')
+    local expiration=$(jq -n $1 | jq -r '.Credentials.Expiration')
+
+    aws configure set region us-east-1 --profile $TEAM
+    aws configure set aws_access_key_id $key_id --profile $TEAM
+    aws configure set aws_secret_access_key $key_val --profile $TEAM
+    aws configure set aws_session_token $session_token --profile $TEAM
+    aws configure set expiration $expiration --profile $TEAM
+}
+
+cached_token() {
+    # $1 is the profile
+    # gets token if its still valid from config file
+    # aws configure get expiration --profile grabthar
+    # gdate -d $(aws configure get expiration --profile grabthar) +%s
+    # echo $((($(gdate -d $(aws configure get expiration --profile grabthar) +%s) - $(gdate +%s))/60))
+    local experation=$(aws configure get expiration --profile $1 2>/dev/null)
+    if [[ -z "$experation" ]]; then
+        # No token
+        return 1
+    fi
+    local experation_ts=$(gdate -d $experation +%s)
+    local now_ts=$(gdate +%s)
+    # local diff_ts=($experation_ts - $now_ts)
+
+
+    if [[ $now_ts -gt $experation_ts ]]; then
+        # expired token
+        return 1
+    else
+        # token is still valid 
+        return 0
+    fi
+}
+
+
+main() {
+    FORCE=false
+    PARAMS=""
+    while (( "$#" )); do
+        case "$1" in
+            -f|--force)
+            FORCE=true
+            shift 1
+            ;;
+            -u|--username)
+            USERNAME=$2
+            shift 2
+            ;;
+            -r|--role)
+            ROLE=$2
+            shift 2
+            ;;
+            -a|--aws-profile)
+            PROFILE=$2
+            shift 2
+            ;;
+            -t|--team)
+            TEAM=$2
+            shift 2
+            ;;
+            --) # end argument parsing
+            shift
+            break
+            ;;
+            -*|--*=) # unsupported flags
+            echo "Error: Unsupported flag $1" >&2
+            exit 1
+            ;;
+            *) # preserve positional arguments
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+        esac
+    done
+    # set positional arguments in their proper place
+    eval set -- "$PARAMS"
+
+
+
+    ## start of script
+
+    getConfiguredClient || exit 1
+
+    # refresh_for_profile
+
+    # client_id=$(fetch_client_id $TEAM)
+
+    # username="adobson@vistaprint.com"
+    # echo -n "PASSWORD: "; stty -echo; read password; stty echo; echo
+
+
+    # id_token=$(fetch_id_token)
+
+    # local creds=$(get_fresh_session_token)
+
+    # echo $creds
+    # configure "$creds"
+
+    get_session_for_profile $TEAM
+
+    #fetch_client_id grabthar
+    # echo $(fetch_client_id grabthar)
+
+    # country=$(httpGet ipinfo.io/country) > /dev/null
+    # echo $country
+
+}
+
+main "$@"
