@@ -54,12 +54,13 @@ fetch_client_id() {
 }
 
 fetch_id_token() {
-    typeset username="adobson@vistaprint.com" # TODO: get username from arg or ask
-    typeset password
+    typeset username="adobson@vista.com" # TODO: get username from arg or ask
+    # typeset password
 
-    stty -echo
-    read -p "Please enter your password: " password;
-    stty echo
+    # stty -echo
+    # read -p "Please enter your password: " password;
+    # stty echo
+    password=Sc13nc3G33k@#
 
     local JSON_STRING=$( jq -n \
                     --arg cn "$client_id" \
@@ -69,6 +70,7 @@ fetch_id_token() {
                     --arg grant "password" \
                     --arg scope "openid" \
                     '{"client_id": $cn, "username": $un, "password": $pw, "connection": $connection, "grant_type": $grant, "scope": $scope}' )
+    echo "$JSON_STRING"
     unset password
     echo $(httpPost "https://cimpress.auth0.com/oauth/ro" -d "$JSON_STRING" -H "Content-Type: application/json" | jq -r '.id_token')
 }
@@ -85,27 +87,27 @@ get_fresh_session_token() {
     echo $(httpPost "https://cimpress.auth0.com/delegation" -d "$JSON_STRING" -H "Content-Type: application/json" )
 }
 
-get_session_for_profile() {
-    # $1 is the profile
-    if [[ $FORCE ]]; 
-    if  cached_token $1 ; then
-        # print out remaining duration
-        printf "token is still valid the time remaining is <BLARG>\n"
-    elif [[ '1' != '1' ]]; then
-        # TODO: possibly check if stored id token is valid and use that ^
-        # and if its about to expire auto renew it ( assuming we save the ID token )
-        printf "should not hit this yet\n"
-    else
-        printf "Your AWS session token has expired, requesting a new one.\n"
-        client_id=$(fetch_client_id $1)
-        id_token=$(fetch_id_token)
-        local creds=$(get_fresh_session_token)
-        configure "$creds"
+# get_session_for_profile() {
+#     # $1 is the profile
+#     if [[ $FORCE ]]; 
+#     if  cached_token $1 ; then
+#         # print out remaining duration
+#         printf "token is still valid the time remaining is <BLARG>\n"
+#     elif [[ '1' != '1' ]]; then
+#         # TODO: possibly check if stored id token is valid and use that ^
+#         # and if its about to expire auto renew it ( assuming we save the ID token )
+#         printf "should not hit this yet\n"
+#     else
+#         printf "Your AWS session token has expired, requesting a new one.\n"
+#         client_id=$(fetch_client_id $1)
+#         id_token=$(fetch_id_token)
+#         local creds=$(get_fresh_session_token)
+#         configure "$creds"
 
-    fi
-    # get_fresh_session_token
-    printf "todo\n"
-}
+#     fi
+#     # get_fresh_session_token
+#     printf "todo\n"
+# }
 
 refresh_for_profile() {
     # get_session_for_profile
@@ -204,14 +206,14 @@ main() {
 
     # refresh_for_profile
 
-    # client_id=$(fetch_client_id $TEAM)
-
-    # username="adobson@vistaprint.com"
+    client_id=$(fetch_client_id $TEAM)
+    echo "$client_id"
+    # username="adobson@vista.com"
     # echo -n "PASSWORD: "; stty -echo; read password; stty echo; echo
 
 
-    # id_token=$(fetch_id_token)
-
+    id_token=$(fetch_id_token)
+    echo "$id_token"
     # local creds=$(get_fresh_session_token)
 
     # echo $creds

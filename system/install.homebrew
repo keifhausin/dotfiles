@@ -5,9 +5,9 @@ coreutils
 cowsay
 curl
 dos2unix
+duf
 findutils
 fortune
-fpp
 gnu-sed
 gource
 grc
@@ -15,10 +15,8 @@ htop
 httpie
 httpstat
 jq
-lastpass-cli
 lolcat
 md5sha1sum
-osquery
 parallel
 pkgdiff
 readline
@@ -27,3 +25,4 @@ tree
 wget
 xmlstarlet
 zsh
+synergy-core

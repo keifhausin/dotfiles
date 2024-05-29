@@ -121,3 +121,5 @@
 
     #grumble
     ffs = "!git all && git commit --amend"
+[user]
+	email = adobson@vista.com
