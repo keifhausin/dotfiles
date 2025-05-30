@@ -123,3 +123,6 @@
     ffs = "!git all && git commit --amend"
 [user]
 	email = adobson@vista.com
+	signingkey = FDC45E35E9AA9EB4
+[commit]
+	gpgsign = true

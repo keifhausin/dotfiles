@@ -54,13 +54,13 @@ fetch_client_id() {
 }
 
 fetch_id_token() {
-    typeset username="adobson@vista.com" # TODO: get username from arg or ask
+    typeset username="me@mytest.com" # TODO: get username from arg or ask
     # typeset password
 
     # stty -echo
     # read -p "Please enter your password: " password;
     # stty echo
-    password=Sc13nc3G33k@#
+    password=testing
 
     local JSON_STRING=$( jq -n \
                     --arg cn "$client_id" \

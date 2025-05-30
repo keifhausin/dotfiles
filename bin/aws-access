@@ -1,6 +1,8 @@
 #!/bin/sh
-stskeygen --account merchfeature --profile MTT-feature --duration 43200 --admin
+# stskeygen --account merchfeature --profile MTT-feature --duration 43200 --admin
 stskeygen --account merchprod --profile MTT-prod --duration 43200 --admin
 stskeygen --account merchsandbox --profile MTT-sandbox --duration 43200 --admin
 
-stskeygen --profile jetstream --account jetstream --duration 43200 --admin
+# stskeygen --profile jetstream --account jetstream --duration 43200 --admin
+stskeygen --profile cobaltprod --account cobalt-prod --duration 43200 --admin
+stskeygen --profile cobaltsandbox --account cobalt-sandbox --duration 43200 --admin
