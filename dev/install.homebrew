@@ -1,5 +1,4 @@
 awscli
-bash
 bsdmake
 ccache
 cloc
@@ -8,11 +7,8 @@ dpkg
 gcc
 gdub
 go
-jq
-jsonnet
 makedepend
 mitmproxy
-neovim
 node
 nvm
 pkg-config
@@ -24,4 +20,3 @@ redis
 rust
 shellcheck
 terraform
-yarn
